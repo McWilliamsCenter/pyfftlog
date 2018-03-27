@@ -1,4 +1,4 @@
-`pyfftlog' for 3D cosmological power spectra
+`pyfftlog` for 3D cosmological power spectra
 ============================================
 This is an updated version of `pyfftlog' which add convenience functions for 
 the calculation of 3D correlation functions from 3D power spectra in a 
