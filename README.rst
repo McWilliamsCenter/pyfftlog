@@ -1,3 +1,15 @@
+`pyfftlog' for 3D cosmological power spectra
+============================================
+This is an updated version of `pyfftlog' which add convenience functions for 
+the calculation of 3D correlation functions from 3D power spectra in a 
+cosmological context (and vice versa) in python only.
+
+The modifications in this fork relative to the original `pyfftlog' were made 
+following heavily from Anze Slosar's (@slosar) similar implementation in C and C++.
+This is essentially a python implementation of that work.
+
+These modifications have not been extensively tested; use as your own risk.
+
 `pyfftlog` - python version of FFTLog
 =====================================
 
