@@ -1,5 +1,24 @@
 """
 
+This is a version of pyfftlog by github user prisae, which itself is based 
+on the FFTLog Fortran code by Andrew Hamilton.
+
+This version is updated to perform the specific task of converting 
+from a 3d power spectrum to a 3d correlation function using typical
+cosmological convention.
+
+The updates take heavy inspiration from a similar code in c / c++ by 
+github user slosar (Anze Slosar).
+
+This version updates by Danielle Leonard (github c-d-leonard).
+
+Some of the original Fortran code documentation has been removed for brevity,
+ for details see http://casa.colorado.edu/~ajsh/FFTLog.
+ 
+ From previous version by prisae:
+ 
+ ####################################################################
+
 `pyfftlog` -- Python version of FFTLog
 ======================================
 
@@ -14,178 +33,13 @@ The function `scipy.special.loggamma` replaces the file `cdgamma.f` in the
 original code, and the functions `rfft` and `irfft` from `scipy.fftpack`
 replace the files `drffti.f`, `drfftf.f`, and `drfftb.f` in the original code.
 
-The original documentation has just been adjusted where necessary, and put into
-a more pythonic format (e.g. using 'Parameters' and 'Returns' in the
-documentation').
-
-***** From the original documentation *****
-
-===============================================================================
- THE FFTLog CODE
-===============================================================================
-
-FFTLog
-    computes the discrete Fast Fourier Transform or Fast Hankel Transform (of
-    arbitrary real index) of a periodic logarithmic sequence.
-
-Version of 5 July 1999.
-
-For more information about FFTLog, see http://casa.colorado.edu/~ajsh/FFTLog.
-
-Andrew J S Hamilton March 1999, email: Andrew.Hamilton@Colorado.EDU
-
-Refs: Talman J. D., 1978, J. Comp. Phys., 29, 35; Hamilton A. J. S., 2000,
-      MNRAS, 312, 257 (http://xxx.lanl.gov/abs/astro-ph/9905191)
-
-FFTLog computes a discrete version of the Hankel Transform (= Fourier-Bessel
-Transform) with a power law bias (k r)^q
-
-            infinity
-            /           q
-    ã(k) = | a(r) (k r)  J  (k r) k dr
-            /              mu
-            0
-
-            infinity
-            /           -q
-    a(r) = | ã(k) (k r)   J  (k r) r dk
-            /               mu
-            0
-
-where J_mu is the Bessel function of order mu.  The index mu may be any real
-number, positive or negative.
-
-The input array a_j is a periodic sequence of length n, uniformly
-logarithmically spaced with spacing dlnr
-    a_j = a(r_j)   at   r_j = r_c exp[(j-j_c) dlnr]
-centred about the point r_c.  The central index j_c = (n+1)/2 is 1/2 integral
-if n is even.  Similarly, the output array ã_j is a periodic sequence of length
-n, also uniformly logarithmically spaced with spacing dlnr
-    ã_j = ã(k_j)   at   k_j = k_c exp[(j-j_c) dlnr]
-centred about the point k_c.
-
-The centre points r_c and k_c of the periodic intervals may be chosen
-arbitrarily; but it would be normal to choose the product
-    kr = k_c r_c = k_j r_(n+1-j) = k_(n+1-j) r_j
-to be about 1 (or 2, or pi, to taste).
-
-The FFTLog algorithm is (see Hamilton 2000):
-1. FFT the input array a_j to obtain the Fourier coefficients c_m ;
-2. Multiply c_m by
-        u_m = (kr)^[- i 2 m pi/(n dlnr)] U_mu[q + i 2 m pi/(n dlnr)]
-    where
-        U_mu(x) = 2^x Gamma[(mu+1+x)/2] / Gamma[(mu+1-x)/2]
-    to obtain c_m u_m ;
-3. FFT c_m u_m back to obtain the discrete Hankel transform ã_j .
-
-----------------------------------------------------------------------
-The Fourier sine and cosine transforms
-
-                    infinity
-                        /
-    Ã(k) = sqrt(2/pi) | A(r) sin(k r) dr
-                        /
-                    0
-
-                    infinity
-                        /
-    Ã(k) = sqrt(2/pi) | A(r) cos(k r) dr
-                        /
-                    0
-
-may be regarded as special cases of the Hankel transform with mu = 1/2 and -1/2
-since
-
-    sqrt(2/pi) sin(x) = sqrt(x) J   (x)
-                                1/2
-
-    sqrt(2/pi) cos(x) = sqrt(x) J    (x)
-                                -1/2
-
-The Fourier transforms may be done by making the substitutions
-                q-(1/2)                      -q-(1/2)
-    A(r) = a(r) r          and   Ã(k) = ã(k) k
-
-and Hankel transforming a(r) with a power law bias (k r)^q
-
-            infinity
-            /           q
-    ã(k) = | a(r) (k r)  J    (k r) k dr
-            /              ±1/2
-            0
-
-Different choices of power law bias q lead to different discrete Fourier
-transforms of A(r), because the assumption of periodicity of a(r) = A(r)
-r^[-q+(1/2)] is different for different q.
-
-If A(r) is a power law, A(r) proportional to r^[q-(1/2)], then applying a bias
-q yields a discrete Fourier transform Ã(k) that is exactly equal to the
-continuous Fourier transform, because then a(r) is a constant, which is a
-periodic function.
-
-----------------------------------------------------------------------
-The Hankel transform
-
-            infinity
-            /
-    Ã(k) = | A(r) J  (k r) k dr
-            /       mu
-            0
-
-may be done by making the substitutions
-                q                      -q
-    A(r) = a(r) r    and   Ã(k) = ã(k) k
-
-and Hankel transforming a(r) with a power law bias (k r)^q
-
-            infinity
-            /           q
-    ã(k) = | a(r) (k r)  J  (k r) k dr
-            /              mu
-            0
-
-Different choices of power law bias q lead to different discrete Hankel
-transforms of A(r), because the assumption of periodicity of a(r) = A(r) r^-q
-is different for different q.
-
-If A(r) is a power law, A(r) proportional to r^q, then applying a bias q yields
-a discrete Hankel transform Ã(k) that is exactly equal to the continuous Hankel
-transform, because then a(r) is a constant, which is a periodic function.
-
-----------------------------------------------------------------------
-------------------------
-There are five routines:
-------------------------
-Comments in the subroutines contain further details.
-
-(1) subroutine fhti(n,mu,q,dlnr,kr,kropt,wsave,ok)
-    is an initialization routine.
-
-(2) subroutine fftl(n,a,rk,dir,wsave)
-    computes the discrete Fourier sine or cosine transform of a logarithmically
-    spaced periodic sequence. This is a driver routine that calls fhtq.
-
-(3) subroutine fht(n,a,dir,wsave)
-    computes the discrete Hankel transform of a logarithmically spaced periodic
-    sequence.  This is a driver routine that calls fhtq.
-
-(4) subroutine fhtq(n,a,dir,wsave)
-    computes the biased discrete Hankel transform of a logarithmically spaced
-    periodic sequence.  This is the basic FFTLog routine.
-
-(5) real*8 function krgood(mu,q,dlnr,kr)
-    takes an input kr and returns the nearest low-ringing kr.  This is an
-    optional routine called by fhti.
-
 """
 import numpy as np
-from scipy.special import loggamma
+from scipy.special import gamma
 from scipy.fftpack._fftpack import drfft
-# from scipy.fftpack import rfft, irfft
-# from scipy.fftpack.basic import _raw_fft
 
 
-def fhti(n, mu, dlnr, q=0, kr=1, kropt=0):
+def fhti(n, l, mu, dlnr, q=0, kr=1, kropt=0):
     """Initialize the working array xsave used by fftl, fht, and fhtq.
 
     fhti initializes the working array xsave used by fftl, fht, and fhtq.  fhti
@@ -246,14 +100,14 @@ def fhti(n, mu, dlnr, q=0, kr=1, kropt=0):
     if kropt == 0:    # keep kr as is
         pass
     elif kropt == 1:  # change kr to low-ringing kr quietly
-        kr = krgood(mu, q, dlnr, kr)
+        kr = krgood(l, q, dlnr, kr)
     elif kropt == 2:  # change kr to low-ringing kr verbosely
-        d = krgood(mu, q, dlnr, kr)
+        d = krgood(l, q, dlnr, kr)
         if abs(kr/d - 1) >= 1e-15:
             kr = d
             print(" kr changed to ", kr)
     else:             # option to change kr to low-ringing kr interactively
-        d = krgood(mu, q, dlnr, kr)
+        d = krgood(l, q, dlnr, kr)
         if abs(kr/d-1.0) >= 1e-15:
             print(" change kr = ", kr)
             print(" to low-ringing kr = ", d)
@@ -278,12 +132,12 @@ def fhti(n, mu, dlnr, q=0, kr=1, kropt=0):
 
     if q == 0:  # unbiased case (q = 0)
         ln2kr = np.log(2.0/kr)
-        xp = (mu + 1)/2.0
+        xp = (l + 1)/2.0
         d = np.pi/(n*dlnr)
 
         m = np.arange(1, (n+1)/2)
         y = m*d  # y = m*pi/(n*dlnr)
-        zp = loggamma(xp + 1j*y)
+        zp = np.log(gamma(xp + 1j*y))
         arg = 2.0*(ln2kr*y + zp.imag)  # Argument of kr^(-2 i y) U_mu(2 i y)
 
         # Arange xsave: [q, dlnr, kr, cos, sin]
@@ -300,8 +154,8 @@ def fhti(n, mu, dlnr, q=0, kr=1, kropt=0):
     else:       # biased case (q != 0)
         ln2 = np.log(2.0)
         ln2kr = np.log(2.0/kr)
-        xp = (mu + 1 + q)/2.0
-        xm = (mu + 1 - q)/2.0
+        xp = (l + 1 + q)/2.0
+        xm = (l + 1 - q)/2.0
 
         # first element of rest of xsave
         y = 0
@@ -348,23 +202,23 @@ def fhti(n, mu, dlnr, q=0, kr=1, kropt=0):
                 arg = 0
 
         else:  # neither xp nor xm is a negative integer
-            zp = loggamma(xp + 1j*y)
-            zm = loggamma(xm + 1j*y)
+            zp = np.log(gamma(xp + 1j*y))
+            zm = np.log(gamma(xm + 1j*y))
 
             # Amplitude and Argument of U_mu(q)
             amp = np.exp(ln2*q + zp.real - zm.real)
             # note +Im(zm) to get conjugate value below real axis
             arg = zp.imag + zm.imag
 
-        # first element: cos(arg) = ±1, sin(arg) = 0
+        # first element: cos(arg) = plus / minus 1, sin(arg) = 0
         xsave1 = amp*np.cos(arg)
 
         # remaining elements of xsave
         d = np.pi/(n*dlnr)
         m = np.arange(1, (n+1)/2)
         y = m*d  # y = m pi/(n dlnr)
-        zp = loggamma(xp + 1j*y)
-        zm = loggamma(xm + 1j*y)
+        zp = np.log(gamma(xp + 1j*y))
+        zm = np.log(gamma(xm + 1j*y))
         # Amplitude and Argument of kr^(-2 i y) U_mu(q + 2 i y)
         amp = np.exp(ln2*q + zp.real - zm.real)
         arg = 2*ln2kr*y + zp.imag + zm.imag
@@ -389,42 +243,7 @@ def fhti(n, mu, dlnr, q=0, kr=1, kropt=0):
 
 
 def fftl(a, xsave, rk=1, tdir=1):
-    """Logarithmic fast Fourier transform FFTLog.
-
-    This is a driver routine that calls fhtq.
-
-    fftl computes a discrete version of the Fourier sine (if mu = 1/2) or
-    cosine (if mu = -1/2) transform
-
-                        infinity
-                         /
-       Ã(k) = sqrt(2/pi) | A(r) sin(k r) dr
-                         /
-                        0
-
-                        infinity
-                         /
-       Ã(k) = sqrt(2/pi) | A(r) cos(k r) dr
-                         /
-                        0
-
-    by making the substitutions
-                    q-(1/2)                      -q-(1/2)
-       A(r) = a(r) r          and   Ã(k) = ã(k) k
-
-    and applying a biased Hankel transform to a(r).
-
-    The steps are:
-    1. a(r) = A(r) r^[-dir*(q-.5)]
-    2. call fhtq to transform a(r) -> ã(k)
-    3. Ã(k) = ã(k) k^[-dir*(q+.5)]
-
-    fhti must be called before the first call to fftl, with mu = 1/2 for a sine
-    transform, or mu = -1/2 for a cosine transform.
-
-    A call to fftl with dir=1 followed by a call to fftl with dir=-1 (and rk
-    unchanged), or vice versa, leaves the array a unchanged.
-
+    """
     Parameters
     ----------
     a : array
@@ -451,7 +270,7 @@ def fftl(a, xsave, rk=1, tdir=1):
     Returns
     -------
     a : array
-        Transformed array Ã(k): a(j) is Ã(k_j) at k_j = k_c exp[(j-jc) dlnr].
+        Transformed array Atilde(k): a(j) is Atilde(k_j) at k_j = k_c exp[(j-jc) dlnr].
 
     """
     fct = a.copy()
@@ -466,11 +285,11 @@ def fftl(a, xsave, rk=1, tdir=1):
     # a(r) = A(r) (r/rc)^[-dir*(q-.5)]
     fct *= np.exp(-tdir*(q - 0.5)*(j - jc)*dlnr)
 
-    # transform a(r) -> ã(k)
+    # transform a(r) -> atilde(k)
     fct = fhtq(fct, xsave, tdir)
 
-    # Ã(k) = ã(k) k^[-dir*(q+.5)] rc^[-dir*(q-.5)]
-    #      = ã(k) (k/kc)^[-dir*(q+.5)] (kc rc)^(-dir*q) (rc/kc)^(dir*.5)
+    # Atilde(k) = atilde(k) k^[-dir*(q+.5)] rc^[-dir*(q-.5)]
+    #      = atilde(k) (k/kc)^[-dir*(q+.5)] (kc rc)^(-dir*q) (rc/kc)^(dir*.5)
     lnkr = np.log(kr)
     lnrk = np.log(rk)
     fct *= np.exp(-tdir*((q + 0.5)*(j - jc)*dlnr + q*lnkr - lnrk/2.0))
@@ -479,36 +298,7 @@ def fftl(a, xsave, rk=1, tdir=1):
 
 
 def fht(a, xsave, tdir=1):
-    """Fast Hankel transform FHT.
-
-    This is a driver routine that calls fhtq.
-
-    fht computes a discrete version of the Hankel transform
-
-             infinity
-              /
-       Ã(k) = | A(r) J  (k r) k dr
-              /       mu
-             0
-
-    by making the substitutions
-                    q                      -q
-       A(r) = a(r) r    and   Ã(k) = ã(k) k
-
-    and applying a biased Hankel transform to a(r).
-
-    The steps are:
-    1. a(r) = A(r) r^(-dir*q)
-    2. call fhtq to transform a(r) -> ã(k)
-    3. Ã(k) = ã(k) k^(-dir*q)
-
-    fhti must be called before the first call to fht.
-
-    A call to fht with dir=1 followed by a call to fht with dir=-1, or vice
-    versa, leaves the array a unchanged.
-
-
-
+    """
     Parameters
     ----------
     a : array
@@ -527,7 +317,7 @@ def fht(a, xsave, tdir=1):
     Returns
     -------
     a : array
-        Transformed array Ã(k): a(j) is Ã(k_j) at k_j = k_c exp[(j-jc) dlnr].
+        Transformed array Atilde(k): a(j) is Atilde(k_j) at k_j = k_c exp[(j-jc) dlnr].
 
     """
     fct = a.copy()
@@ -542,11 +332,11 @@ def fht(a, xsave, tdir=1):
         j = np.arange(fct.size)+1
         fct *= np.exp(-tdir*q*(j - jc)*dlnr)
 
-    # transform a(r) -> ã(k)
+    # transform a(r) -> atilde(k)
     fct = fhtq(fct, xsave, tdir)
 
-    # Ã(k) = ã(k) (k rc)^(-dir*q)
-    #      = ã(k) (k/kc)^(-dir*q) (kc rc)^(-dir*q)
+    # Atilde(k) = atilde(k) (k rc)^(-dir*q)
+    #      = atilde(k) (k/kc)^(-dir*q) (kc rc)^(-dir*q)
     if q != 0:
         lnkr = np.log(kr)
         fct *= np.exp(-tdir*q*((j - jc)*dlnr + lnkr))
@@ -555,23 +345,7 @@ def fht(a, xsave, tdir=1):
 
 
 def fhtq(a, xsave, tdir=1):
-    """Kernel routine of FFTLog.
-
-    This is the basic FFTLog routine.
-
-    fhtq computes a discrete version of the biased Hankel transform
-
-             infinity
-              /           q
-       ã(k) = | a(r) (k r)  J  (k r) k dr
-              /              mu
-             0
-
-    fhti must be called before the first call to fhtq.
-
-    A call to fhtq with dir=1 followed by a call to fhtq with dir=-1, or vice
-    versa, leaves the array a unchanged.
-
+    """
     Parameters
     ----------
     a : array
@@ -590,7 +364,7 @@ def fhtq(a, xsave, tdir=1):
     Returns
     -------
     a : array
-        Transformed periodic array ã(k): a(j) is ã(k_j) at k_j = k_c exp[(j-jc)
+        Transformed periodic array atilde(k): a(j) is atilde(k_j) at k_j = k_c exp[(j-jc)
         dlnr].
 
     """
@@ -724,11 +498,54 @@ def krgood(mu, q, dlnr, kr):
     xp = (mu + 1.0 + q)/2.0
     xm = (mu + 1.0 - q)/2.0
     y = 1j*np.pi/(2.0*dlnr)
-    zp = loggamma(xp + y)
-    zm = loggamma(xm + y)
+    zp = np.log(gamma(xp + y))
+    zm = np.log(gamma(xm + y))
 
     # low-ringing condition is that following should be integral
     arg = np.log(2.0/kr)/dlnr + (zp.imag + zm.imag)/np.pi
 
     # return low-ringing kr
     return kr*np.exp((arg - np.round(arg))*dlnr)
+
+def call_transform(l, m, k, pk, tdir):
+	"""
+	tdir is 1 for xi -> pk, -1 for pk -> xi.
+	To do xi -> pk, pass r as k and xi as pk.
+	l should be passed as 0 and m as 2 for 
+    the transform between P(k) and xi(r) in cosmological applications.
+    """
+    
+    n = len(k)
+    dlogk = (np.log10(max(k)) - np.log10(min(k)))/n
+    dlnk = dlogk*np.log(10.0)
+    
+    (kr, xsave) = fhti(n, l+0.5, m, dlnk, 0, 1, 1)
+
+    a = k**(m-0.5) * pk
+    b = fht(a, xsave, tdir)
+    
+    nc = (n + 1)/2.0
+    logkc = (np.log10(min(k)) + np.log10(max(k)))/2.
+    logrc = np.log10(kr) - logkc
+    r = 10**(logrc + (np.arange(1, n+1) - nc)*dlogk)
+    
+    xi = (2.*np.pi*r)**(-1.5) * b;
+    
+    return r, xi
+
+def pk2xi(k, pk):
+	""" Take the 3d power spectrum at k, output the 3d correlation 
+	function at r """
+
+    (r, xi) = call_transform(0, 2, k, pk, tdir=-1)
+
+    return (r, xi)
+
+def xi2pk(r, xi):
+	""" Take the 3d correlation function at r, output the 3d power
+	spectrum at k. """
+    (k, b) = call_transform(0, 2, r, xi, tdir = 1)
+    pk = b* 8. * np.pi * np.pi * np.pi
+    
+    return k, pk
+
