@@ -508,13 +508,12 @@ def krgood(mu, q, dlnr, kr):
     return kr*np.exp((arg - np.round(arg))*dlnr)
 
 def call_transform(l, m, k, pk, tdir):
-	"""
-	tdir is 1 for xi -> pk, -1 for pk -> xi.
-	To do xi -> pk, pass r as k and xi as pk.
-	l should be passed as 0 and m as 2 for 
-    the transform between P(k) and xi(r) in cosmological applications.
     """
-    
+    tdir is 1 for xi -> pk, -1 for pk -> xi.
+    To do xi -> pk, pass r as k and xi as pk.
+    l should be passed as 0 and m as 2 for 
+    the transform between P(k) and xi(r) in cosmological applications.
+    """    
     n = len(k)
     dlogk = (np.log10(max(k)) - np.log10(min(k)))/n
     dlnk = dlogk*np.log(10.0)
@@ -534,16 +533,16 @@ def call_transform(l, m, k, pk, tdir):
     return r, xi
 
 def pk2xi(k, pk):
-	""" Take the 3d power spectrum at k, output the 3d correlation 
-	function at r """
+    """ Take the 3d power spectrum at k, output the 3d correlation 
+    function at r """
 
     (r, xi) = call_transform(0, 2, k, pk, tdir=-1)
 
     return (r, xi)
 
 def xi2pk(r, xi):
-	""" Take the 3d correlation function at r, output the 3d power
-	spectrum at k. """
+    """ Take the 3d correlation function at r, output the 3d power
+    spectrum at k. """
     (k, b) = call_transform(0, 2, r, xi, tdir = 1)
     pk = b* 8. * np.pi * np.pi * np.pi
     
